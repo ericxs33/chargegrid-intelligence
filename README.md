@@ -174,8 +174,8 @@ chargegrid-intelligence/
 
 ## 🔗 Links
 
-- 🎥 **Vídeo demonstração:** *(em breve)*
-- 📋 **Quadro Kanban:** *(link do Trello)*
+- 🎥 **Vídeo demonstração:** https://youtu.be/B-EpYfbEh6Y
+- 📋 **Quadro Kanban:** https://trello.com/invite/b/6a2855abfaa8d2266be81030/ATTI953e9abb1a8572be50e19a9213686f9fAA9C9467/chargegrid-intelligence-sprint-2
 - 📄 **Sprint 1:** Pesquisa, Problemas e Soluções
 
 ---
