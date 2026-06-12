@@ -140,6 +140,8 @@ GRID_LIMIT_KW = 120.0
 TARIFF_KWH    = 1.35
 SOLAR_CAP     = 78.0
 BATTERY_CAP   = 30.0
+# Fator de emissão da rede elétrica brasileira (kg CO₂/kWh) — fonte: MCTIC 2023
+CO2_GRID_KG_KWH = 0.0817
 
 STATIONS = [
     {"id": "EV-01", "name": "Vaga A1", "connector": "CCS2",    "auth": "RFID",    "max_kw": 22},
@@ -251,12 +253,16 @@ def print_dashboard():
     active = sum(1 for s in sessions.values() if s["active"])
     solar_u, bat_u, grid_u = energy_mix(demand)
     revenue = sum(s["kwh"] * TARIFF_KWH for s in sessions.values())
+    total_kwh_all = sum(s["kwh"] for s in sessions.values())
+    solar_u_dash, _, _ = energy_mix(demand)
+    solar_kwh_share = (solar_u_dash / demand * total_kwh_all) if demand > 0 else 0
+    co2_avoided = solar_kwh_share * CO2_GRID_KG_KWH
 
     status_dlm = green("ATIVO ✓") if dlm_active else yellow("INATIVO")
     status_net = red("⚠ SOBRECARGA") if is_overloaded() else green("NORMAL ✓")
     print(f"  {'Solar:':<18} {solar_pct:.0f}%       {'DLM:':<12} {status_dlm}")
     print(f"  {'Sessões ativas:':<18} {active}/6       {'Rede:':<12} {status_net}")
-    print(f"  {'Receita sessão:':<18} R$ {revenue:.2f}")
+    print(f"  {'Receita sessão:':<18} R$ {revenue:.2f}    {green(f'CO₂ evitado: {co2_avoided:.3f} kg')}")
     print()
 
     demand_bar   = bar(demand, GRID_LIMIT_KW, 30)
@@ -561,6 +567,21 @@ def action_tariff_report():
 
     print(f"  {'─'*68}")
     print(f"  {'TOTAL':<40} {total_kwh:>6.2f} kWh        {bold(f'R$ {total_cost:.2f}')}")
+
+    # Sustentabilidade
+    solar_u_rep, _, _ = energy_mix(total_demand())
+    demand_rep = total_demand()
+    solar_share_rep = (solar_u_rep / demand_rep) if demand_rep > 0 else solar_pct / 100
+    solar_kwh_rep = total_kwh * solar_share_rep
+    co2_avoided_rep = solar_kwh_rep * CO2_GRID_KG_KWH
+    co2_equivalent_rep = co2_avoided_rep / 0.089  # km equivalentes de carro a combustão (IPCC)
+    print()
+    print(f"  {bold('Impacto Ambiental — Sustentabilidade')}")
+    print(f"  {'─'*68}")
+    print(f"  Energia solar utilizada  : {solar_kwh_rep:.3f} kWh ({solar_share_rep*100:.0f}% do total consumido)")
+    print(f"  {green(f'CO₂ evitado              : {co2_avoided_rep:.4f} kg')}  {dim('(vs. uso 100% da rede)')}")
+    print(f"  Equivalente em km evitados: {co2_equivalent_rep:.1f} km  {dim('(carro a combustão, IPCC)')}")
+    print(f"  Fator de emissão usado   : {CO2_GRID_KG_KWH} kg CO₂/kWh  {dim('(MCTIC 2023 — Brasil)')}")
     print()
     wait()
 
