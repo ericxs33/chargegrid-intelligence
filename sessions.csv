@@ -1,1 +1,2 @@
 data_hora,estacao,usuario,conector,auth,kwh,tempo_min,custo_brl,fonte_energia,solar_pct,co2_evitado_kg,dlm_ativo,protocolo
+2026-09-19 03:16:42,EV-04,USR-40,CCS2,RFID,12.5000,15,16.88,Solar,65,1.0212,Não,OCPP 2.0.1

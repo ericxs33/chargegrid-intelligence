@@ -36,9 +36,12 @@ class ChargeGridDashboard(tk.Tk):
         self.minsize(920, 640)
         self.configure(bg=COLOR_BG)
 
+        self.current_rows = []
         self.setup_styles()
         self.build_ui()
+        self.update_idletasks()
         self.load_data()
+        self.after(100, self.load_data)
 
     def setup_styles(self):
         style = ttk.Style(self)
@@ -170,6 +173,7 @@ class ChargeGridDashboard(tk.Tk):
         tk.Label(c1_box, text="⚡ CONSUMO POR ESTAÇÃO (kWh)", bg=COLOR_SURFACE, fg=COLOR_TEXT_DIM, font=(FONT_FAMILY, 9, "bold")).pack(anchor="w")
         self.canvas_stations = tk.Canvas(c1_box, bg=COLOR_SURFACE, height=140, highlightthickness=0)
         self.canvas_stations.pack(fill="both", expand=True, pady=(6, 0))
+        self.canvas_stations.bind("<Configure>", lambda e: self.draw_station_chart())
 
         # Gráfico 2: Mix de Energia
         c2_box = tk.Frame(charts_frame, bg=COLOR_SURFACE, padx=14, pady=10, highlightbackground=COLOR_BORDER, highlightthickness=1)
@@ -178,6 +182,7 @@ class ChargeGridDashboard(tk.Tk):
         tk.Label(c2_box, text="☀️ DISTRIBUIÇÃO DO MIX ENERGÉTICO", bg=COLOR_SURFACE, fg=COLOR_TEXT_DIM, font=(FONT_FAMILY, 9, "bold")).pack(anchor="w")
         self.canvas_mix = tk.Canvas(c2_box, bg=COLOR_SURFACE, height=140, highlightthickness=0)
         self.canvas_mix.pack(fill="both", expand=True, pady=(6, 0))
+        self.canvas_mix.bind("<Configure>", lambda e: self.draw_mix_chart())
 
         # 5. TABELA DE SESSÕES
         table_card = tk.Frame(self.main_container, bg=COLOR_SURFACE, padx=14, pady=10, highlightbackground=COLOR_BORDER, highlightthickness=1)
@@ -274,6 +279,8 @@ class ChargeGridDashboard(tk.Tk):
             except Exception as e:
                 messagebox.showerror("Erro ao carregar CSV", f"Não foi possível ler {CSV_FILE}:\n{e}")
 
+        self.current_rows = rows
+
         # Atualiza métricas
         total_kwh     = sum(r["kwh"] for r in rows)
         total_cost    = sum(r["cost"] for r in rows)
@@ -315,10 +322,16 @@ class ChargeGridDashboard(tk.Tk):
         self.draw_station_chart(rows)
         self.draw_mix_chart(rows)
 
-    def draw_station_chart(self, rows):
+    def draw_station_chart(self, rows=None):
+        if rows is None:
+            rows = self.current_rows
         self.canvas_stations.delete("all")
-        w = self.canvas_stations.winfo_width() or 460
-        h = self.canvas_stations.winfo_height() or 140
+        w = self.canvas_stations.winfo_width()
+        if w <= 100:
+            w = 480
+        h = self.canvas_stations.winfo_height()
+        if h <= 50:
+            h = 140
 
         station_totals = {f"EV-0{i}": 0.0 for i in range(1, 7)}
         for r in rows:
@@ -356,10 +369,16 @@ class ChargeGridDashboard(tk.Tk):
                 font=(FONT_FAMILY, 8), anchor="w"
             )
 
-    def draw_mix_chart(self, rows):
+    def draw_mix_chart(self, rows=None):
+        if rows is None:
+            rows = self.current_rows
         self.canvas_mix.delete("all")
-        w = self.canvas_mix.winfo_width() or 460
-        h = self.canvas_mix.winfo_height() or 140
+        w = self.canvas_mix.winfo_width()
+        if w <= 100:
+            w = 480
+        h = self.canvas_mix.winfo_height()
+        if h <= 50:
+            h = 140
 
         mix_counts = {"Solar": 0, "Bateria": 0, "Rede": 0, "Misto": 0}
         for r in rows:

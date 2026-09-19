@@ -194,3 +194,21 @@
 [2026-09-15 22:46:47] [INFO] Coleta de dados ativa — exportando para sessions.csv
 [2026-09-15 22:47:10] [WARN] CSV limpo pelo operador.
 [2026-09-15 22:47:24] [INFO] Sistema encerrado pelo operador.
+[2026-09-19 03:15:22] [OK] Sistema inicializado — SEMS+ conectado
+[2026-09-19 03:15:22] [INFO] Limite de demanda: 120.0 kW | Tarifa: R$ 1.35/kWh
+[2026-09-19 03:15:22] [INFO] Módulo de IA carregado — aguardando dados das estações
+[2026-09-19 03:15:22] [INFO] Coleta de dados ativa — exportando para sessions.csv
+[2026-09-19 03:15:41] [OK] Sistema inicializado — SEMS+ conectado
+[2026-09-19 03:15:41] [INFO] Limite de demanda: 120.0 kW | Tarifa: R$ 1.35/kWh
+[2026-09-19 03:15:41] [INFO] Módulo de IA carregado — aguardando dados das estações
+[2026-09-19 03:15:41] [INFO] Coleta de dados ativa — exportando para sessions.csv
+[2026-09-19 03:16:08] [OK] Sistema inicializado — SEMS+ conectado
+[2026-09-19 03:16:08] [INFO] Limite de demanda: 120.0 kW | Tarifa: R$ 1.35/kWh
+[2026-09-19 03:16:08] [INFO] Módulo de IA carregado — aguardando dados das estações
+[2026-09-19 03:16:08] [INFO] Coleta de dados ativa — exportando para sessions.csv
+[2026-09-19 03:16:28] [OK] Sessão iniciada: EV-04 | USR-40 | 50.0 kW | auth: RFID
+[2026-09-19 03:16:33] [INFO] Simulação: +5 minutos. kWh acumulados.
+[2026-09-19 03:16:34] [INFO] Simulação: +5 minutos. kWh acumulados.
+[2026-09-19 03:16:34] [INFO] Simulação: +5 minutos. kWh acumulados.
+[2026-09-19 03:16:42] [OK] Sessão encerrada: EV-04 | 12.50 kWh | R$ 16.88 | salvo em CSV
+[2026-09-19 03:16:55] [INFO] Sistema encerrado pelo operador.
