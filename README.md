@@ -37,7 +37,7 @@ O DLM monitora a demanda total em tempo real e, quando detecta risco de sobrecar
 |---|---|---|
 | **Sprint 1** | Pesquisa e proposição de soluções | Análise dos 4 pilares, 5 problemas identificados |
 | **Sprint 2** | Simulador CLI em Python | DLM funcional, IA embarcada, tarifação, CO₂ evitado |
-| **Sprint 3** | Integração completa | Coleta de dados CSV, log persistente, dashboard web, diagrama de integração |
+| **Sprint 3** | Integração completa | Coleta de dados CSV, log persistente, dashboard desktop em Python (Tkinter), diagrama de integração |
 
 ---
 
@@ -66,11 +66,11 @@ O DLM monitora a demanda total em tempo real e, quando detecta risco de sobrecar
                                          └────────┬───────────┘
                                                   │
                                                   ▼
-                                    ┌─────────────────────────┐
-                                    │   dashboard.html        │
-                                    │  Lê CSV · Exibe gráficos│
-                                    │  Métricas · CO₂ · Tabela│
-                                    └─────────────────────────┘
+                                     ┌─────────────────────────┐
+                                     │   dashboard.py          │
+                                     │  GUI Python (Tkinter)   │
+                                     │  Métricas · CO₂ · Tabela│
+                                     └─────────────────────────┘
 ```
 
 > O diagrama visual completo está em [`assets/diagrama.png`](assets/diagrama.png)
@@ -135,32 +135,25 @@ Ao encerrar uma sessão, o sistema salva automaticamente em `sessions.csv`:
 | dlm_ativo | Se o DLM estava ativo na sessão |
 | protocolo | OCPP 2.0.1 |
 
-### 📊 Dashboard Web de Monitoramento (`dashboard.html`)
+### 📊 Dashboard Desktop em Python (`dashboard.py`)
 
-> 🔗 **Arquivo local:** [`dashboard.html`](dashboard.html)  
-> 🌐 **Online (GitHub Pages):** [https://ericxs33.github.io/chargegrid-intelligence/dashboard.html](https://ericxs33.github.io/chargegrid-intelligence/dashboard.html)
-
-Interface analítica interativa em modo escuro desenvolvida com HTML5, CSS3 e Chart.js via CDN. O dashboard consome o arquivo `sessions.csv` gerado pelo simulador e apresenta:
+Interface gráfica moderna em modo escuro desenvolvida **100% em Python puro (Tkinter)**, sem necessidade de instalar nenhuma biblioteca externa (`zero pip install`). O dashboard consome diretamente o arquivo `sessions.csv` gerado pelo simulador e apresenta:
 
 - **Cards de KPIs em tempo real:** Total de sessões, volume de kWh consumidos, receita tarifada (R$) e CO₂ evitado acumulado.
 - **Indicadores de Sustentabilidade:** Volume de energia solar aproveitada, km equivalentes limpos rodados e taxa percentual de atuação do algoritmo DLM.
-- **Gráficos interativos:**
+- **Gráficos interativos em Canvas:**
   - Consumo total acumulado por estação de recarga (EV-01 a EV-06).
-  - Distribuição do mix energético por fontes (Solar, Bateria, Rede e Misto).
-- **Tabela de auditoria detalhada:** Histórico completo das sessões com data/hora, conector (CCS2/Tipo 2/CHAdeMO), autenticação (RFID/App/QR), custo e protocolo OCPP 2.0.1.
+  - Distribuição percentual do mix energético por fontes (Solar, Bateria, Rede e Misto).
+- **Tabela de Auditoria Completa:** Histórico detalhado das sessões com barra de rolagem, contendo data/hora, estação, usuário, conector, tempo de recarga, custo (R$), fonte energética e conformidade com o protocolo OCPP 2.0.1.
+- **Atualização Instantânea:** Botão `🔄 Atualizar Dados` que recarrega o `sessions.csv` a qualquer momento.
 
-#### 💡 Como acessar e utilizar o Dashboard:
+#### 💡 Como executar o Dashboard:
 
-1. **Abrir o Dashboard:**
-   - **Localmente:** Dê um duplo clique no arquivo [`dashboard.html`](dashboard.html) na raiz do projeto (abre em qualquer navegador) ou execute no terminal PowerShell:
-     ```powershell
-     start dashboard.html
-     ```
-   - **Online:** Acesse diretamente via [GitHub Pages](https://ericxs33.github.io/chargegrid-intelligence/dashboard.html).
-2. **Gerar os dados:**
-   - Execute o simulador CLI (`python main.py`), inicie e encerre sessões de recarga para que os dados consolidados sejam salvos automaticamente no arquivo `sessions.csv`.
-3. **Carregar no Dashboard:**
-   - Na tela do dashboard, clique no botão central **"Carregar sessions.csv"** e selecione o arquivo gerado na raiz do projeto. Todos os dados, gráficos e tabelas serão renderizados instantaneamente.
+No terminal, execute:
+```bash
+python dashboard.py
+```
+> O dashboard abrirá em uma janela desktop nativa e carregará automaticamente os dados de `sessions.csv`.
 
 ### Log persistente (`system.log`)
 
@@ -173,8 +166,7 @@ Todos os eventos do sistema são gravados em arquivo com timestamp real, mantend
 ### Pré-requisitos
 
 - Python 3.10 ou superior
-- Nenhuma biblioteca externa necessária
-- Navegador moderno para o dashboard
+- Nenhuma biblioteca externa necessária (100% Python Standard Library)
 
 ### Simulador CLI
 
@@ -184,12 +176,14 @@ cd chargegrid-intelligence
 python main.py
 ```
 
-### Dashboard Web
+### Dashboard Desktop (GUI)
 
 1. Execute o simulador (`python main.py`) e encerre sessões para gerar o `sessions.csv`
-2. Abra [`dashboard.html`](dashboard.html) no navegador (duplo clique ou `start dashboard.html`)
-3. Clique em **"Carregar sessions.csv"** e selecione o arquivo
-4. Os dados, gráficos e indicadores aparecem automaticamente (ou acesse online via [GitHub Pages](https://ericxs33.github.io/chargegrid-intelligence/dashboard.html))
+2. Em um terminal, execute:
+   ```bash
+   python dashboard.py
+   ```
+3. A interface abrirá automaticamente exibindo todos os indicadores, gráficos e tabela de sessões.
 
 ### Compatibilidade
 
@@ -227,7 +221,9 @@ python main.py
 chargegrid-intelligence/
 │
 ├── main.py           # Simulador CLI — ponto de entrada
-├── dashboard.html    # Dashboard web interativo
+├── dashboard.py      # Dashboard desktop em Python (Tkinter)
+├── sessions.csv      # Base de dados persistente das sessões de recarga
+├── system.log        # Histórico de eventos e auditoria do sistema
 ├── README.md         # Este arquivo
 │
 ├── docs/
@@ -242,8 +238,6 @@ chargegrid-intelligence/
 
 ## 🔗 Links
 
-- 📊 **Dashboard Web Online:** https://ericxs33.github.io/chargegrid-intelligence/dashboard.html
-- 📄 **Código do Dashboard:** [dashboard.html](dashboard.html)
 - 🎥 **Vídeo Sprint 2:** https://youtu.be/9wmg-8ojMLE
 - 🎥 **Vídeo Sprint 3:** *(em breve)*
 - 📋 **Quadro Kanban:** https://trello.com/invite/b/6a2855abfaa8d2266be81030/ATTI953e9abb1a8572be50e19a9213686f9fAA9C9467/chargegrid-intelligence-sprint-2
