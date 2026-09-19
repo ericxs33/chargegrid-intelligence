@@ -1,46 +1,45 @@
 """
 ChargeGrid Intelligence — Simulador DLM
-GoodWe Challenge | Sprint 2 | FIAP 2026
+GoodWe Challenge | Sprint 3 | FIAP 2026
 """
 
 import time
 import os
 import random
+import csv
+import json
+from datetime import datetime
+
+# Habilita suporte ANSI no Windows (PowerShell/CMD)
+if os.name == "nt":
+    import ctypes
+    kernel32 = ctypes.windll.kernel32
+    kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
 
 # ─────────────────────────────────────────────
 # MÓDULO DE IA — ANÁLISE E DECISÃO
 # ─────────────────────────────────────────────
 
 def ai_typing(text, delay=0.018):
-    """Efeito de digitação para simular resposta de IA em tempo real."""
     for ch in text:
         print(ch, end="", flush=True)
         time.sleep(delay)
     print()
 
 def ai_analyze_and_decide(demand, limit, active_data, sol_pct, actions_taken):
-    """
-    Motor de IA simulada do ChargeGrid.
-    Analisa o estado real da rede e gera raciocínio técnico baseado
-    nos dados das estações ativas, mix de energia e excesso de demanda.
-    """
-    excess   = demand - limit
-    solar_kw = SOLAR_CAP * (sol_pct / 100)
+    excess    = demand - limit
+    solar_kw  = SOLAR_CAP * (sol_pct / 100)
     high_load = [s for s in active_data if s["kw"] >= 20]
     low_load  = [s for s in active_data if s["kw"] < 20]
     n_active  = len(active_data)
     new_demand = demand - excess
-
     blocks = []
 
-    # 1. Diagnóstico
     blocks.append(
         f"Detectei {n_active} estações ativas com demanda total de {demand:.1f} kW, "
         f"excedendo o limite de {limit:.0f} kW em {excess:.1f} kW. "
         f"Risco de sobrecarga na infraestrutura elétrica identificado."
     )
-
-    # 2. Mix de energia
     if sol_pct >= 60:
         blocks.append(
             f"Geração solar em {sol_pct:.0f}% ({solar_kw:.1f} kW disponíveis). "
@@ -57,8 +56,6 @@ def ai_analyze_and_decide(demand, limit, active_data, sol_pct, actions_taken):
             f"Bateria e rede elétrica como fontes primárias. "
             f"Redução de carga é crítica para evitar pico tarifário."
         )
-
-    # 3. Estratégia de redistribuição
     if high_load:
         ids = ", ".join(s["id"] for s in high_load)
         blocks.append(
@@ -72,14 +69,10 @@ def ai_analyze_and_decide(demand, limit, active_data, sol_pct, actions_taken):
             f"Estações de baixa potência ({ids}) recebem corte mínimo "
             f"para garantir experiência do usuário."
         )
-
-    # 4. Resultado
     blocks.append(
         f"Redistribuição concluída. Nova demanda: {new_demand:.1f} kW / {limit:.0f} kW "
         f"({(new_demand/limit*100):.0f}% do limite). Sistema operando com segurança."
     )
-
-    # 5. Recomendação
     if sol_pct < 50:
         blocks.append(
             "Recomendação: agende sessões de alta potência para o período de maior "
@@ -90,22 +83,18 @@ def ai_analyze_and_decide(demand, limit, active_data, sol_pct, actions_taken):
             "Recomendação: manter DLM ativo. Com geração solar elevada, "
             "o custo por kWh está abaixo da tarifa convencional da rede."
         )
-
     return blocks
 
 def print_ai_analysis(demand, limit, sol_pct, actions_taken):
-    """Imprime análise da IA com efeito visual de processamento."""
     active_data = [
         {"id": sid, "kw": s["kw"], "kwh": s["kwh"], "minutes": s["minutes"]}
         for sid, s in sessions.items() if s["active"]
     ]
-
     print()
     print(cyan("  ┌─────────────────────────────────────────────────────┐"))
     print(cyan("  │  ") + bold("ChargeGrid IA — Módulo de Análise e Decisão") + cyan("       │"))
     print(cyan("  └─────────────────────────────────────────────────────┘"))
     print()
-
     steps = [
         "  Coletando dados das estações ativas...",
         "  Analisando mix de energia solar/bateria/rede...",
@@ -116,16 +105,13 @@ def print_ai_analysis(demand, limit, sol_pct, actions_taken):
         print(dim(step), end="\r", flush=True)
         time.sleep(0.5)
     print(" " * 55, end="\r")
-
     blocks = ai_analyze_and_decide(demand, limit, active_data, sol_pct, actions_taken)
-
     print(f"  {bold('Análise da IA:')}\n")
     for block in blocks:
         print(f"  {dim('·')}  ", end="")
         ai_typing(block, delay=0.013)
         time.sleep(0.2)
     print()
-
     if actions_taken:
         print(f"  {bold('Ações executadas pelo DLM:')}")
         for a in actions_taken:
@@ -136,12 +122,13 @@ def print_ai_analysis(demand, limit, sol_pct, actions_taken):
 # CONFIGURAÇÕES DO SISTEMA
 # ─────────────────────────────────────────────
 
-GRID_LIMIT_KW = 120.0
-TARIFF_KWH    = 1.35
-SOLAR_CAP     = 78.0
-BATTERY_CAP   = 30.0
-# Fator de emissão da rede elétrica brasileira (kg CO₂/kWh) — fonte: MCTIC 2023
-CO2_GRID_KG_KWH = 0.0817
+GRID_LIMIT_KW   = 120.0
+TARIFF_KWH      = 1.35
+SOLAR_CAP       = 78.0
+BATTERY_CAP     = 30.0
+CO2_GRID_KG_KWH = 0.0817   # MCTIC 2023
+CSV_FILE        = "sessions.csv"
+LOG_FILE        = "system.log"
 
 STATIONS = [
     {"id": "EV-01", "name": "Vaga A1", "connector": "CCS2",    "auth": "RFID",    "max_kw": 22},
@@ -152,10 +139,93 @@ STATIONS = [
     {"id": "EV-06", "name": "Vaga C2", "connector": "CCS2",    "auth": "QR Code", "max_kw": 22},
 ]
 
-sessions   = {s["id"]: {"active": False, "kw": 0.0, "kwh": 0.0, "minutes": 0, "user": ""} for s in STATIONS}
+sessions   = {s["id"]: {"active": False, "kw": 0.0, "kwh": 0.0, "minutes": 0, "user": "", "start": ""} for s in STATIONS}
 solar_pct  = 65.0
 dlm_active = False
 system_log = []
+
+# ─────────────────────────────────────────────
+# PERSISTÊNCIA DE DADOS — SPRINT 3
+# ─────────────────────────────────────────────
+
+def init_csv():
+    """Cria o CSV com cabeçalho se não existir."""
+    if not os.path.exists(CSV_FILE):
+        with open(CSV_FILE, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                "data_hora", "estacao", "usuario", "conector", "auth",
+                "kwh", "tempo_min", "custo_brl", "fonte_energia",
+                "solar_pct", "co2_evitado_kg", "dlm_ativo", "protocolo"
+            ])
+
+def save_session_csv(sid, st, s, solar_u, bat_u, grid_u):
+    """Salva os dados da sessão encerrada no CSV."""
+    total = solar_u + bat_u + grid_u
+    if total > 0:
+        fonte = "Solar" if solar_u/total > 0.6 else ("Misto Solar+Bateria" if solar_u/total > 0.3 else "Rede")
+    else:
+        fonte = "—"
+    solar_share = (solar_u / total) if total > 0 else solar_pct / 100
+    co2 = s["kwh"] * solar_share * CO2_GRID_KG_KWH
+    cost = s["kwh"] * TARIFF_KWH
+
+    with open(CSV_FILE, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            sid, s["user"], st["connector"], st["auth"],
+            f"{s['kwh']:.4f}", s["minutes"], f"{cost:.2f}",
+            fonte, f"{solar_pct:.0f}", f"{co2:.4f}",
+            "Sim" if dlm_active else "Não", "OCPP 2.0.1"
+        ])
+
+def persist_log(msg, level="INFO"):
+    """Salva entrada no log persistente em arquivo."""
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
+        f.write(f"[{ts}] [{level}] {msg}\n")
+
+def export_report_txt():
+    """Exporta relatório completo em .txt."""
+    filename = f"relatorio_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    demand = total_demand()
+    solar_u, bat_u, grid_u = energy_mix(demand)
+    total_kwh  = sum(s["kwh"] for s in sessions.values())
+    total_cost = total_kwh * TARIFF_KWH
+    solar_share = (solar_u / demand) if demand > 0 else solar_pct / 100
+    co2 = total_kwh * solar_share * CO2_GRID_KG_KWH
+
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write("=" * 60 + "\n")
+        f.write("  ChargeGrid Intelligence — Relatório de Sessão\n")
+        f.write(f"  Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n")
+        f.write("=" * 60 + "\n\n")
+        f.write(f"  Limite de demanda : {GRID_LIMIT_KW} kW\n")
+        f.write(f"  DLM               : {'Ativo' if dlm_active else 'Inativo'}\n")
+        f.write(f"  Geração solar     : {solar_pct:.0f}%\n")
+        f.write(f"  Tarifa            : R$ {TARIFF_KWH}/kWh\n\n")
+        f.write("-" * 60 + "\n")
+        f.write(f"  {'Estação':<8} {'Usuário':<10} {'kWh':>7} {'Tempo':>8} {'R$':>9}\n")
+        f.write("-" * 60 + "\n")
+        for st in STATIONS:
+            sid = st["id"]
+            s   = sessions[sid]
+            if s["kwh"] > 0 or s["active"]:
+                cost = s["kwh"] * TARIFF_KWH
+                status = "ATIVO" if s["active"] else "encerrada"
+                f.write(f"  {sid:<8} {s['user']:<10} {s['kwh']:>6.2f}  {s['minutes']:>5} min  R${cost:>6.2f}  [{status}]\n")
+        f.write("-" * 60 + "\n")
+        f.write(f"  {'TOTAL':<30} {total_kwh:>6.2f} kWh    R$ {total_cost:.2f}\n\n")
+        f.write("  IMPACTO AMBIENTAL\n")
+        f.write("-" * 60 + "\n")
+        f.write(f"  Energia solar utilizada : {total_kwh * solar_share:.3f} kWh ({solar_share*100:.0f}%)\n")
+        f.write(f"  CO2 evitado             : {co2:.4f} kg\n")
+        f.write(f"  Km de carro evitados    : {co2/0.089:.1f} km\n")
+        f.write(f"  Fator MCTIC 2023        : {CO2_GRID_KG_KWH} kg CO2/kWh\n")
+        f.write("=" * 60 + "\n")
+
+    return filename
 
 # ─────────────────────────────────────────────
 # UTILITÁRIOS VISUAIS
@@ -185,6 +255,7 @@ def log(msg, level="INFO"):
     system_log.append(entry)
     if len(system_log) > 6:
         system_log.pop(0)
+    persist_log(msg, level)
 
 def wait(msg="Pressione ENTER para continuar..."):
     input(f"\n  {dim(msg)}")
@@ -208,12 +279,10 @@ def energy_mix(demand):
     return solar_used, battery_used, grid_used
 
 def run_dlm():
-    """Redistribuição proporcional de carga — núcleo do DLM."""
     active_ids = [sid for sid, s in sessions.items() if s["active"]]
     demand = total_demand()
     if demand <= GRID_LIMIT_KW or not active_ids:
         return []
-
     actions = []
     excess = demand - GRID_LIMIT_KW
     for sid in active_ids:
@@ -239,10 +308,10 @@ def simulate_tick(minutes=5):
 # ─────────────────────────────────────────────
 
 def header():
-    print(bold(cyan("  ╔══════════════════════════════════════════════════════╗")))
-    print(bold(cyan("  ║       ChargeGrid Intelligence — DLM Simulator        ║")))
-    print(bold(cyan("  ║         GoodWe Challenge · FIAP Sprint 2             ║")))
-    print(bold(cyan("  ╚══════════════════════════════════════════════════════╝")))
+    print(cyan("  " + "=" * 56))
+    print(cyan("  ") + bold("       ChargeGrid Intelligence — DLM Simulator        "))
+    print(cyan("  ") + bold("         GoodWe Challenge · FIAP Sprint 3             "))
+    print(cyan("  " + "=" * 56))
     print()
 
 def print_dashboard():
@@ -254,8 +323,7 @@ def print_dashboard():
     solar_u, bat_u, grid_u = energy_mix(demand)
     revenue = sum(s["kwh"] * TARIFF_KWH for s in sessions.values())
     total_kwh_all = sum(s["kwh"] for s in sessions.values())
-    solar_u_dash, _, _ = energy_mix(demand)
-    solar_kwh_share = (solar_u_dash / demand * total_kwh_all) if demand > 0 else 0
+    solar_kwh_share = (solar_u / demand * total_kwh_all) if demand > 0 else 0
     co2_avoided = solar_kwh_share * CO2_GRID_KG_KWH
 
     status_dlm = green("ATIVO ✓") if dlm_active else yellow("INATIVO")
@@ -306,7 +374,7 @@ def print_dashboard():
         print(f"    {mark} {sid}  {st['connector']:<10} {st['auth']:<10} OCPP 2.0.1")
 
     print()
-    print(f"  Log do sistema:")
+    print(f"  Log do sistema:  {dim(f'(persistido em {LOG_FILE})')}")
     if system_log:
         for entry in system_log[-4:]:
             print(entry)
@@ -315,20 +383,23 @@ def print_dashboard():
     print()
 
 def print_menu():
-    print(f"  {'─'*42}")
+    print(f"  {'─'*46}")
     print(f"  {bold('MENU PRINCIPAL')}")
-    print(f"  {'─'*42}")
+    print(f"  {'─'*46}")
     print(f"  1 · Iniciar sessão de carregamento")
-    print(f"  2 · Encerrar sessão")
+    print(f"  2 · Encerrar sessão  {dim('← salva no CSV')}")
     print(f"  3 · Simular avanço de tempo (+ 5 min)")
     print(f"  4 · Ativar / desativar DLM")
-    print(f"  5 · Simular cenário de pico  ← demo principal")
+    print(f"  5 · Simular cenário de pico")
     print(f"  6 · Ajustar geração solar")
-    print(f"  7 · Análise da IA  ← novo")
+    print(f"  7 · Análise da IA")
     print(f"  8 · Ver relatório de tarifação")
-    print(f"  9 · Ver log completo do sistema")
+    print(f"  9 · Exportar relatório .txt  {dim('← novo')}")
+    print(f"  L · Ver log completo do sistema")
+    print(f"  D · Ver dados do CSV  {dim('← novo')}")
+    print(f"  C · Limpar dados do CSV  {dim('← novo')}")
     print(f"  0 · Sair")
-    print(f"  {'─'*42}")
+    print(f"  {'─'*46}")
 
 # ─────────────────────────────────────────────
 # AÇÕES
@@ -367,7 +438,11 @@ def action_start_session():
 
     req_kw = min(req_kw, st["max_kw"])
     sid = st["id"]
-    sessions[sid].update({"active": True, "kw": req_kw, "kwh": 0.0, "minutes": 0, "user": user})
+    sessions[sid].update({
+        "active": True, "kw": req_kw, "kwh": 0.0,
+        "minutes": 0, "user": user,
+        "start": datetime.now().strftime("%H:%M:%S")
+    })
     log(f"Sessão iniciada: {sid} | {user} | {req_kw:.1f} kW | auth: {st['auth']}", "OK")
 
     if is_overloaded():
@@ -414,6 +489,10 @@ def action_stop_session():
     s    = sessions[sid]
     cost = s["kwh"] * TARIFF_KWH
 
+    # Calcula mix para salvar no CSV
+    demand = total_demand()
+    solar_u, bat_u, grid_u = energy_mix(demand)
+
     print(green(f"\n  ✓ Sessão {sid} encerrada."))
     print(f"    Usuário  : {s['user']}")
     print(f"    Consumo  : {s['kwh']:.3f} kWh")
@@ -421,8 +500,21 @@ def action_stop_session():
     print(f"    Conector : {st['connector']} | Auth: {st['auth']} | OCPP 2.0.1")
     print(f"    {bold(f'Total    : R$ {cost:.2f}')}")
 
-    log(f"Sessão encerrada: {sid} | {s['kwh']:.2f} kWh | R$ {cost:.2f}", "OK")
-    sessions[sid].update({"active": False, "kw": 0.0, "kwh": 0.0, "minutes": 0, "user": ""})
+    # Salva no CSV
+    save_session_csv(sid, st, s, solar_u, bat_u, grid_u)
+
+    # Calcula CO2 para exibir na confirmação
+    total = solar_u + bat_u + grid_u
+    solar_share = (solar_u / total) if total > 0 else solar_pct / 100
+    co2_line = s["kwh"] * solar_share * CO2_GRID_KG_KWH
+    fonte_line = "Solar" if solar_share > 0.6 else ("Misto Solar+Bateria" if solar_share > 0.3 else "Rede")
+
+    print(green(f"    Dados exportados para {CSV_FILE}"))
+    print(dim(f"    └ {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | {sid} | {s['user']} | {st['connector']} | {s['kwh']:.4f} kWh | {s['minutes']} min | R${cost:.2f} | {fonte_line} | CO₂: {co2_line:.4f} kg"))
+    print()
+
+    log(f"Sessão encerrada: {sid} | {s['kwh']:.2f} kWh | R$ {cost:.2f} | salvo em CSV", "OK")
+    sessions[sid].update({"active": False, "kw": 0.0, "kwh": 0.0, "minutes": 0, "user": "", "start": ""})
     wait()
 
 def action_tick():
@@ -462,7 +554,8 @@ def action_simulate_peak():
             "active": True, "kw": peak_kw[i],
             "kwh": round(random.uniform(1, 5), 2),
             "minutes": random.randint(10, 40),
-            "user": users[i]
+            "user": users[i],
+            "start": datetime.now().strftime("%H:%M:%S")
         })
         log(f"Sessão ativada (pico): {sid} | {users[i]} | {peak_kw[i]} kW", "INFO")
 
@@ -497,7 +590,6 @@ def action_solar():
     wait()
 
 def action_ai_analysis():
-    """Opção dedicada à análise da IA — mesmo sem sobrecarga."""
     print_dashboard()
     demand = total_demand()
 
@@ -507,7 +599,6 @@ def action_ai_analysis():
         return
 
     if not is_overloaded():
-        # Análise de otimização (sem sobrecarga)
         print()
         print(cyan("  ┌─────────────────────────────────────────────────────┐"))
         print(cyan("  │  ") + bold("ChargeGrid IA — Módulo de Análise e Decisão") + cyan("       │"))
@@ -568,13 +659,13 @@ def action_tariff_report():
     print(f"  {'─'*68}")
     print(f"  {'TOTAL':<40} {total_kwh:>6.2f} kWh        {bold(f'R$ {total_cost:.2f}')}")
 
-    # Sustentabilidade
     solar_u_rep, _, _ = energy_mix(total_demand())
     demand_rep = total_demand()
     solar_share_rep = (solar_u_rep / demand_rep) if demand_rep > 0 else solar_pct / 100
     solar_kwh_rep = total_kwh * solar_share_rep
     co2_avoided_rep = solar_kwh_rep * CO2_GRID_KG_KWH
-    co2_equivalent_rep = co2_avoided_rep / 0.089  # km equivalentes de carro a combustão (IPCC)
+    co2_equivalent_rep = co2_avoided_rep / 0.089
+
     print()
     print(f"  {bold('Impacto Ambiental — Sustentabilidade')}")
     print(f"  {'─'*68}")
@@ -585,12 +676,95 @@ def action_tariff_report():
     print()
     wait()
 
+def action_export_report():
+    """Exporta relatório completo em .txt."""
+    filename = export_report_txt()
+    print()
+    print(green(f"  ✓ Relatório exportado: {filename}"))
+    log(f"Relatório exportado: {filename}", "OK")
+    wait()
+
+def action_view_csv():
+    """Exibe as últimas entradas do CSV de sessões."""
+    clear()
+    header()
+    print(bold("  DADOS COLETADOS — sessions.csv"))
+    print()
+
+    if not os.path.exists(CSV_FILE):
+        print(yellow("  Nenhuma sessão encerrada ainda. Encerre uma sessão para gerar dados."))
+        print()
+        wait()
+        return
+
+    with open(CSV_FILE, "r", encoding="utf-8") as f:
+        rows = list(csv.reader(f))
+
+    if len(rows) <= 1:
+        print(yellow("  CSV existe mas sem dados de sessão ainda."))
+        print()
+        wait()
+        return
+
+    header_row = rows[0]
+    data_rows  = rows[1:]
+
+    print(f"  Total de sessões registradas: {bold(str(len(data_rows)))}")
+    print()
+    print(f"  {dim('Últimas 5 sessões:')}")
+    print(f"  {'─'*70}")
+    print(f"  {'Data/Hora':<20} {'Estação':<8} {'Usuário':<10} {'kWh':>6} {'R$':>7} {'CO2(kg)':>9} {'Fonte':<18}")
+    print(f"  {'─'*70}")
+
+    for row in data_rows[-5:]:
+        if len(row) >= 12:
+            print(f"  {row[0]:<20} {row[1]:<8} {row[2]:<10} {row[5]:>6} {row[7]:>7} {row[10]:>9} {row[8]:<18}")
+
+    print(f"  {'─'*70}")
+    print()
+    print(f"  {dim(f'Arquivo completo: {CSV_FILE}')}")
+    print()
+    wait()
+
+def action_clear_csv():
+    """Limpa o sessions.csv e recria vazio."""
+    print_dashboard()
+    print(bold("  LIMPAR DADOS DO CSV"))
+    print()
+    if not os.path.exists(CSV_FILE):
+        print(yellow(f"  Arquivo {CSV_FILE} não existe ainda."))
+        wait()
+        return
+
+    confirm = input(f"  {yellow('Tem certeza? Todos os dados serão apagados. (s/N): ')}").strip().lower()
+    if confirm != 's':
+        print(dim("  Operação cancelada."))
+        wait()
+        return
+
+    with open(CSV_FILE, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            "data_hora", "estacao", "usuario", "conector", "auth",
+            "kwh", "tempo_min", "custo_brl", "fonte_energia",
+            "solar_pct", "co2_evitado_kg", "dlm_ativo", "protocolo"
+        ])
+
+    print(green(f"  ✓ {CSV_FILE} limpo — pronto para nova simulação."))
+    log(f"CSV limpo pelo operador.", "WARN")
+    wait()
+
 def action_full_log():
     clear()
     header()
     print(bold("  LOG COMPLETO DO SISTEMA"))
     print()
-    if system_log:
+    if os.path.exists(LOG_FILE):
+        with open(LOG_FILE, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        for line in lines[-20:]:
+            print(f"  {line.rstrip()}")
+    elif system_log:
         for entry in system_log:
             print(entry)
     else:
@@ -603,9 +777,11 @@ def action_full_log():
 # ─────────────────────────────────────────────
 
 def main():
+    init_csv()
     log("Sistema inicializado — SEMS+ conectado", "OK")
     log(f"Limite de demanda: {GRID_LIMIT_KW} kW | Tarifa: R$ {TARIFF_KWH}/kWh", "INFO")
     log("Módulo de IA carregado — aguardando dados das estações", "INFO")
+    log(f"Coleta de dados ativa — exportando para {CSV_FILE}", "INFO")
 
     actions_map = {
         "1": action_start_session,
@@ -616,7 +792,13 @@ def main():
         "6": action_solar,
         "7": action_ai_analysis,
         "8": action_tariff_report,
-        "9": action_full_log,
+        "9": action_export_report,
+        "l": action_full_log,
+        "L": action_full_log,
+        "d": action_view_csv,
+        "D": action_view_csv,
+        "c": action_clear_csv,
+        "C": action_clear_csv,
     }
 
     while True:
@@ -627,6 +809,7 @@ def main():
         if choice == "0":
             clear()
             print(bold(cyan("\n  ChargeGrid Intelligence — sessão encerrada.\n")))
+            log("Sistema encerrado pelo operador.", "INFO")
             break
         elif choice in actions_map:
             actions_map[choice]()
