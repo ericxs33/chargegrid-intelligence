@@ -1,7 +1,7 @@
-# ⚡ ChargeGrid Intelligence — DLM Simulator
+# ⚡ ChargeGrid Intelligence — Solução Final Integrada
 
 > **GoodWe Challenge · FIAP 2026**  
-> Sistema de Gerenciamento Dinâmico de Carga (DLM) com IA embarcada, dashboard web interativo e coleta de dados persistente para carregamento inteligente de veículos elétricos em ambiente comercial.
+> Sistema de Gerenciamento Dinâmico de Carga (DLM) com IA embarcada, app desktop completo e coleta de dados persistente para carregamento inteligente de veículos elétricos em ambiente comercial.
 
 ---
 
@@ -37,7 +37,36 @@ O DLM monitora a demanda total em tempo real e, quando detecta risco de sobrecar
 |---|---|---|
 | **Sprint 1** | Pesquisa e proposição de soluções | Análise dos 4 pilares, 5 problemas identificados |
 | **Sprint 2** | Simulador CLI em Python | DLM funcional, IA embarcada, tarifação, CO₂ evitado |
-| **Sprint 3** | Integração completa | Coleta de dados CSV, log persistente, dashboard desktop em Python (Tkinter), diagrama de integração |
+| **Sprint 3** | Integração completa | Coleta CSV, log persistente, dashboard desktop Tkinter |
+| **Sprint 4** | Solução final integrada | App desktop unificado com 3 abas, painel de controle interativo, atualização automática |
+
+---
+
+## 🆕 Sprint 4 — App Desktop Unificado (`app.py`)
+
+O `app.py` é a evolução final do projeto: um **app desktop completo em Python puro (Tkinter)** que unifica o simulador CLI e o dashboard em uma única interface com 3 abas integradas.
+
+### Aba 1 — Painel de Controle
+- Cards de status em tempo real: demanda total, geração solar, sessões ativas e receita
+- Barra visual de demanda vs limite (120 kW) com cor dinâmica — verde / amarelo / vermelho
+- Barra de mix energético Solar / Bateria / Rede atualizada em tempo real
+- 6 cards interativos de estações — botão Iniciar/Encerrar com diálogo de configuração
+- Botões de ação: +5 min, Ativar DLM, Simular Pico, Limpar CSV
+- Slider de geração solar (0–100%)
+
+### Aba 2 — IA e Log
+- Módulo de IA com análise contextual e efeito de digitação em tempo real
+- Log do sistema com todos os eventos e timestamps
+- Detecção automática de sobrecarga e acionamento do DLM
+
+### Aba 3 — Dashboard e Dados
+- 4 KPIs do CSV: sessões, kWh, receita, CO₂ evitado
+- Cards de sustentabilidade: energia solar, km limpos, % DLM ativo
+- Gráfico de consumo por estação (Canvas nativo)
+- Gráfico de mix energético segmentado (Canvas nativo)
+- Tabela histórica completa de sessões
+
+**Atualização automática a cada 3 segundos. 100% Python Standard Library — zero dependências externas.**
 
 ---
 
@@ -52,28 +81,27 @@ O DLM monitora a demanda total em tempo real e, quando detecta risco de sobrecar
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              DLM Engine + Módulo de IA (main.py)            │
+│           DLM Engine + Módulo de IA (app.py)                │
 │  Monitora demanda · Redistribui carga · Detecta sobrecarga  │
 │  Calcula mix de energia · Aciona IA · Gera log persistente  │
 └──────┬──────────────────────────────────────────────┬───────┘
        │ OCPP 2.0.1                                   │
        ▼                                              ▼
-┌─────────────────────────┐              ┌────────────────────┐
-│   Estações (EV-01~06)   │              │   Saídas de dados  │
-│  CCS2 · Tipo2 · CHAdeMO │              │  sessions.csv      │
-│  RFID · App · QR Code   │              │  system.log        │
-└─────────────────────────┘              │  relatorio.txt     │
-                                         └────────┬───────────┘
-                                                  │
-                                                  ▼
-                                     ┌─────────────────────────┐
-                                     │   dashboard.py          │
-                                     │  GUI Python (Tkinter)   │
-                                     │  Métricas · CO₂ · Tabela│
-                                     └─────────────────────────┘
+┌─────────────────────────┐         ┌─────────────────────────┐
+│   Estações (EV-01~06)   │         │      Saídas de dados     │
+│  CCS2 · Tipo2 · CHAdeMO │         │  sessions.csv            │
+│  RFID · App · QR Code   │         │  system.log              │
+└─────────────────────────┘         │  relatorio.txt           │
+                                    └────────────┬────────────┘
+                                                 │
+                                                 ▼
+                                  ┌──────────────────────────┐
+                                  │  Dashboard (Aba 3)       │
+                                  │  KPIs · Gráficos · Tabela│
+                                  └──────────────────────────┘
 ```
 
-> O diagrama visual completo está em [`assets/diagrama.png`](assets/diagrama.png)
+> O diagrama visual completo está em `assets/diagrama.png`
 
 ---
 
@@ -109,55 +137,15 @@ O DLM monitora a demanda total em tempo real e, quando detecta risco de sobrecar
 CO₂ evitado (kg) = kWh solar utilizado × 0,0817
 ```
 
-O sistema calcula e exibe o CO₂ evitado em tempo real no terminal e no dashboard.
+### Análise de Impacto
 
----
-
-## 🆕 Novidades da Sprint 3
-
-### Coleta de dados persistente
-
-Ao encerrar uma sessão, o sistema salva automaticamente em `sessions.csv`:
-
-| Campo | Descrição |
+| Indicador | Valor simulado (sessão típica) |
 |---|---|
-| data_hora | Timestamp completo da sessão |
-| estacao | ID da estação (EV-01 a EV-06) |
-| usuario | ID do usuário autenticado |
-| conector | Tipo de conector (CCS2, Tipo 2, CHAdeMO) |
-| auth | Método de autenticação (RFID, App, QR Code) |
-| kwh | Energia consumida na sessão |
-| tempo_min | Duração em minutos |
-| custo_brl | Valor cobrado em R$ |
-| fonte_energia | Solar / Misto / Bateria / Rede |
-| solar_pct | Porcentagem de geração solar |
-| co2_evitado_kg | CO₂ evitado vs. uso 100% da rede |
-| dlm_ativo | Se o DLM estava ativo na sessão |
-| protocolo | OCPP 2.0.1 |
-
-### 📊 Dashboard Desktop em Python (`dashboard.py`)
-
-Interface gráfica moderna em modo escuro desenvolvida **100% em Python puro (Tkinter)**, sem necessidade de instalar nenhuma biblioteca externa (`zero pip install`). O dashboard consome diretamente o arquivo `sessions.csv` gerado pelo simulador e apresenta:
-
-- **Cards de KPIs em tempo real:** Total de sessões, volume de kWh consumidos, receita tarifada (R$) e CO₂ evitado acumulado.
-- **Indicadores de Sustentabilidade:** Volume de energia solar aproveitada, km equivalentes limpos rodados e taxa percentual de atuação do algoritmo DLM.
-- **Gráficos interativos em Canvas:**
-  - Consumo total acumulado por estação de recarga (EV-01 a EV-06).
-  - Distribuição percentual do mix energético por fontes (Solar, Bateria, Rede e Misto).
-- **Tabela de Auditoria Completa:** Histórico detalhado das sessões com barra de rolagem, contendo data/hora, estação, usuário, conector, tempo de recarga, custo (R$), fonte energética e conformidade com o protocolo OCPP 2.0.1.
-- **Atualização Instantânea:** Botão `🔄 Atualizar Dados` que recarrega o `sessions.csv` a qualquer momento.
-
-#### 💡 Como executar o Dashboard:
-
-No terminal, execute:
-```bash
-python dashboard.py
-```
-> O dashboard abrirá em uma janela desktop nativa e carregará automaticamente os dados de `sessions.csv`.
-
-### Log persistente (`system.log`)
-
-Todos os eventos do sistema são gravados em arquivo com timestamp real, mantendo o histórico mesmo após fechar o programa.
+| Demanda máxima sem DLM | 184 kW (sobrecarga) |
+| Demanda com DLM ativo | ~110 kW (dentro do limite) |
+| Redução de pico | ~40% |
+| CO₂ evitado por sessão | 0,02–0,10 kg (65% solar) |
+| Tarifa média efetiva | R$ 0,47/kWh (vs R$ 1,35 rede pura) |
 
 ---
 
@@ -168,22 +156,25 @@ Todos os eventos do sistema são gravados em arquivo com timestamp real, mantend
 - Python 3.10 ou superior
 - Nenhuma biblioteca externa necessária (100% Python Standard Library)
 
-### Simulador CLI
+### App Desktop Completo (Sprint 4 — recomendado)
 
 ```bash
 git clone https://github.com/ericxs33/chargegrid-intelligence.git
 cd chargegrid-intelligence
+python app.py
+```
+
+### Simulador CLI (Sprint 2/3)
+
+```bash
 python main.py
 ```
 
-### Dashboard Desktop (GUI)
+### Dashboard Standalone (Sprint 3)
 
-1. Execute o simulador (`python main.py`) e encerre sessões para gerar o `sessions.csv`
-2. Em um terminal, execute:
-   ```bash
-   python dashboard.py
-   ```
-3. A interface abrirá automaticamente exibindo todos os indicadores, gráficos e tabela de sessões.
+```bash
+python dashboard.py
+```
 
 ### Compatibilidade
 
@@ -195,43 +186,24 @@ python main.py
 
 ---
 
-## 📋 Menu do Simulador
-
-```
-  1 · Iniciar sessão de carregamento
-  2 · Encerrar sessão          ← salva automaticamente no CSV
-  3 · Simular avanço de tempo (+ 5 min)
-  4 · Ativar / desativar DLM
-  5 · Simular cenário de pico
-  6 · Ajustar geração solar
-  7 · Análise da IA
-  8 · Ver relatório de tarifação
-  9 · Exportar relatório .txt
-  L · Ver log completo do sistema
-  D · Ver dados do CSV
-  C · Limpar dados do CSV
-  0 · Sair
-```
-
----
-
 ## 📁 Estrutura do Repositório
 
 ```
 chargegrid-intelligence/
 │
-├── main.py           # Simulador CLI — ponto de entrada
-├── dashboard.py      # Dashboard desktop em Python (Tkinter)
-├── sessions.csv      # Base de dados persistente das sessões de recarga
-├── system.log        # Histórico de eventos e auditoria do sistema
+├── app.py            # App desktop completo — Sprint 4 (ponto de entrada final)
+├── main.py           # Simulador CLI — Sprint 2/3
+├── dashboard.py      # Dashboard standalone — Sprint 3
+├── sessions.csv      # Base de dados persistente das sessões
+├── system.log        # Histórico de eventos do sistema
 ├── README.md         # Este arquivo
 │
 ├── docs/
 │   └── arquitetura.md    # Detalhamento técnico da solução
 │
 └── assets/
-    ├── diagrama.png              # Diagrama de integração dos componentes
-    └── (screenshots do simulador)
+    ├── diagrama.png              # Diagrama de integração
+    └── (screenshots do app)
 ```
 
 ---
@@ -239,7 +211,8 @@ chargegrid-intelligence/
 ## 🔗 Links
 
 - 🎥 **Vídeo Sprint 2:** https://youtu.be/9wmg-8ojMLE
-- 🎥 **Vídeo Sprint 3:** *(em breve)*
+- 🎥 **Vídeo Sprint 3:** https://www.youtube.com/watch?v=dn-p8uNGKpM
+- 🎥 **Vídeo Sprint 4:** *(em breve)*
 - 📋 **Quadro Kanban:** https://trello.com/invite/b/6a2855abfaa8d2266be81030/ATTI953e9abb1a8572be50e19a9213686f9fAA9C9467/chargegrid-intelligence-sprint-2
 
 ---
